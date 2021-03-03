@@ -1,7 +1,9 @@
+import './env.js'
 import { fastify } from 'fastify'
 import fastifyStatic from 'fastify-static'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { connectDb } from './db.js'
 
 // ESM specific "features"
 const __filename = fileURLToPath(import.meta.url)
@@ -22,10 +24,12 @@ async function startApp() {
     // })
 
     await app.listen(3000);
-    console.log('Server Listening at port: 3000');
+    console.log('🚀 Server Listening at port: 3000');
   } catch (e) {
     console.log(e);
   }
 }
 
-startApp()
+connectDb().then(() => {
+  startApp()
+})
