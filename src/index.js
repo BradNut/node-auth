@@ -17,6 +17,10 @@ async function startApp() {
       root: path.join(__dirname, "public"),
     })
 
+    app.post('/api/register', {}, (request, reply) => {
+      console.log('request', request.body.email, request.body.password);
+    })
+
     // app.get("/", {}, (request, reply) => {
     //   reply.send({
     //     data: "hello world",
