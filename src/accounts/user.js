@@ -34,7 +34,6 @@ export async function getUserFromCookies(request, reply) {
         const currentUser = await user.findOne({
           _id: ObjectId(currentSession.userId)
         })
-        console.log('currentUser', currentUser);
         // Refresh tokens
         await refreshTokens(sessionToken, currentUser._id, reply)
         // Retrun current user

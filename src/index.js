@@ -8,6 +8,7 @@ import { connectDb } from './db.js'
 import { registerUser } from './accounts/register.js'
 import { authorizeUser } from './accounts/authorize.js'
 import { logUserIn } from './accounts/logUserIn.js'
+import { logUserOut } from './accounts/logUserOut.js'
 import { getUserFromCookies } from './accounts/user.js'
 
 // ESM specific "features"
@@ -32,11 +33,44 @@ async function startApp() {
           request.body.email,
           request.body.password
         )
+        if (userId) {
+          await logUserIn(userId, request, reply)
+          reply.send({
+            data: {
+              status: "SUCCESS",
+              userId,
+            },
+          })
+        }
       } catch (e) {
         console.error('e', e);
+        reply.send({
+          data: {
+            status: "FAILED",
+            userId,
+          },
+        })
       }
     })
 
+    app.post('/api/logout', {}, async (request, reply) => {
+      try {
+        await logUserOut(request, reply)
+        reply.send({
+          data: {
+            status: "SUCCESS",
+          },
+        })
+      } catch (e) {
+        console.error('e', e);
+        reply.send({
+          data: {
+            status: "FAILED",
+            userId,
+          },
+        })
+      }
+    })
 
     app.post('/api/authorize', {}, async (request, reply) => {
       try {
@@ -48,14 +82,20 @@ async function startApp() {
         if (isAuthorized) {
           await logUserIn(userId, request, reply)
           reply.send({
-            data: "User Logged In",
+            data: {
+              status: "SUCCESS",
+              userId,
+            },
           })
         }
-        reply.send({
-          data: "Auth Failed",
-        })
       } catch (e) {
         console.error('e', e);
+        reply.send({
+          data: {
+            status: "FAILED",
+            userId,
+          },
+        })
       }
     })
     
