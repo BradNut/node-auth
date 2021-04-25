@@ -12,6 +12,7 @@ import { logUserIn } from './accounts/logUserIn.js'
 import { logUserOut } from './accounts/logUserOut.js'
 import { getUserFromCookies } from './accounts/user.js'
 import { sendEmail, mailInit } from './mail/index.js'
+import { createVerifyEmailLink, validateVerifyEmail } from './accounts/verify.js'
 
 // ESM specific "features"
 const __filename = fileURLToPath(import.meta.url)
@@ -22,10 +23,6 @@ const app = fastify()
 async function startApp() {
   try {
     await mailInit()
-    await sendEmail({
-      subject: "New func",
-      html: /*html*/ `<h2>New HTML who is?</h2>`,
-    })
 
     app.register(fastifyCors, {
       origin: [/\.nodeauth.dev/, 'https://nodeauth.dev'],
@@ -46,7 +43,14 @@ async function startApp() {
           request.body.email,
           request.body.password
         )
+        // If account creation was successful
         if (userId) {
+          const emailLink = await createVerifyEmailLink(request.body.email)
+          await sendEmail({
+            to: request.body.email,
+            subject: "Verify your email",
+            html: /*html*/ `<a href="${emailLink}">verify</a>`,
+          })
           await logUserIn(userId, request, reply)
           reply.send({
             data: {
@@ -82,6 +86,22 @@ async function startApp() {
             userId,
           },
         })
+      }
+    })
+
+    app.post('/api/verify', {}, async (request, reply) => {
+      try {
+        const { token, email } = request.body
+        console.log('token, email', token, email);
+        const isValid = await validateVerifyEmail(token, email)
+        console.log(`Is Valid: ${isValid}`)
+        if (isValid) {
+          return reply.code(200).send()
+        }
+        return reply.code(401).send()
+      } catch (e) {
+        console.error('e', e);
+        return reply.code(401).send()
       }
     })
 
