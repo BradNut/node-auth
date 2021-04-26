@@ -10,7 +10,7 @@ import { registerUser } from './accounts/register.js'
 import { authorizeUser } from './accounts/authorize.js'
 import { logUserIn } from './accounts/logUserIn.js'
 import { logUserOut } from './accounts/logUserOut.js'
-import { getUserFromCookies } from './accounts/user.js'
+import { getUserFromCookies, changePassword } from './accounts/user.js'
 import { sendEmail, mailInit } from './mail/index.js'
 import { createVerifyEmailLink, validateVerifyEmail } from './accounts/verify.js'
 
@@ -86,6 +86,32 @@ async function startApp() {
             userId,
           },
         })
+      }
+    })
+
+    app.post('/api/change-password', {}, async (request, reply) => {
+      try {
+        const { oldPassword, newPassword } = request.body
+        // Verify user login
+        const user = await getUserFromCookies(request, reply)
+        if (user?.email?.address) {
+          // Compare current logged in user with form to re-auth
+          const { isAuthorized, userId } = await authorizeUser(
+            user.email.address,
+            oldPassword
+          )
+          console.log('isAuthorized, userId', isAuthorized, userId)
+          // If user is who they say they are
+          if (isAuthorized) {
+            // Update password in DB
+            await changePassword(userId, newPassword)
+            return reply.code(200).send('All Good')
+          }
+        }
+        return reply.code(401).send()
+      } catch (e) {
+        console.error('e', e);
+        return reply.code(401).send()
       }
     })
 

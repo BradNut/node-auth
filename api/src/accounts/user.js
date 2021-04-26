@@ -1,5 +1,7 @@
 import mongo from 'mongodb'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
+const { genSalt, hash } = bcrypt
 import { createTokens } from './tokens.js'
 
 const { ObjectId } = mongo
@@ -69,6 +71,28 @@ export async function refreshTokens(sessionToken, userId, reply) {
         httpOnly: true,
         secure: true,
       })
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+export async function changePassword(userId, newPassword) {
+  try {
+    const { user } = await import("../user/user.js")
+    // generate salt
+    const salt = await genSalt(10)
+
+    // hash with salt
+    const hashedPassword = await hash(newPassword, salt)
+
+    // Update user
+    return user.updateOne({
+      _id: userId,
+    }, {
+      $set: {
+        password: hashedPassword,
+      }
+    })
   } catch (e) {
     console.error(e)
   }
