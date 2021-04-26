@@ -17,6 +17,8 @@ async function startApp() {
       root: path.join(__dirname, "public"),
     })
 
+    app.get('/reset/:email/:exp/:token', {}, async (request, reply) => reply.sendFile('reset.html'))
+
     app.get('/verify/:email/:token', {}, async ( request, reply ) => {
       try {
         const { email, token } = request.params
