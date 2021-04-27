@@ -11,7 +11,7 @@ import { registerUser } from './accounts/register.js'
 import { authorizeUser } from './accounts/authorize.js'
 import { logUserIn } from './accounts/logUserIn.js'
 import { logUserOut } from './accounts/logUserOut.js'
-import { getUserFromCookies, changePassword } from './accounts/user.js'
+import { getUserFromCookies, changePassword, register2FA } from './accounts/user.js'
 import { sendEmail, mailInit } from './mail/index.js'
 import { createVerifyEmailLink, validateVerifyEmail } from './accounts/verify.js'
 import { createResetLink, validateResetEmail } from './accounts/reset.js'
@@ -58,13 +58,15 @@ async function startApp() {
         // Verify user login
         const user = await getUserFromCookies(request, reply)
         const { token, secret } = request.body
-        console.log('token, secret', token, secret);
         const isValid = authenticator.verify({ token, secret })
-        console.log('isValid', isValid);
-        reply.send("success")
+        if (user?._id && isValid) {
+          await register2FA(user._id, secret)
+          reply.send("success")
+        }
+        reply.code(401).send()
       } catch (e) {
         console.log('e', e)
-        return reply.send({})
+        return reply.code(401).send({})
       }
     });
 
