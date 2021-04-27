@@ -70,6 +70,29 @@ async function startApp() {
       }
     });
 
+    app.post('/api/verify-2fa', {}, async (request, reply) => {
+      try {
+        // Verify user login
+        const { token, email, password } = request.body
+        const { 
+          isAuthorized,
+          userId,
+          authenticatorSecret 
+        } = await authorizeUser(email, password)
+
+        const isValid = authenticator.verify({ token, secret: authenticatorSecret })
+        
+        if (userId && isValid && isAuthorized) {
+          await logUserIn(userId, request, reply)
+          reply.send("success")
+        }
+        reply.code(401).send()
+      } catch (e) {
+        console.log('e', e)
+        return reply.code(401).send({})
+      }
+    });
+
     app.post('/api/register', {}, async (request, reply) => {
       try {
         const userId = await registerUser(
@@ -208,12 +231,11 @@ async function startApp() {
 
     app.post('/api/authorize', {}, async (request, reply) => {
       try {
-        console.log(request.body.email, request.body.password)
-        const { isAuthorized, userId } = await authorizeUser(
+        const { isAuthorized, userId, authenticatorSecret } = await authorizeUser(
           request.body.email,
           request.body.password
         )
-        if (isAuthorized) {
+        if (isAuthorized && !authenticatorSecret) {
           await logUserIn(userId, request, reply)
           reply.send({
             data: {
@@ -221,7 +243,14 @@ async function startApp() {
               userId,
             },
           })
+        } else if (isAuthorized && authenticatorSecret) {
+          reply.send({
+            data: {
+              status: "2FA",
+            },
+          })
         }
+        reply.code(401).send()
       } catch (e) {
         console.error('e', e);
         reply.send({
